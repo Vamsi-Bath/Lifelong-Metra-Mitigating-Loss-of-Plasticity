@@ -1,0 +1,2 @@
+EvalOp/AverageDiscountedReturn,EvalOp/AverageReturn,EvalOp/CompletionRate,EvalOp/DiffMaxMinReturn,EvalOp/EvalFinalX,EvalOp/EvalFinalY,EvalOp/EvalMeanLength,EvalOp/EvalMeanReturn,EvalOp/EvalStdReturn,EvalOp/Iteration,EvalOp/MaxReturn,EvalOp/MinReturn,EvalOp/NumTrajs,EvalOp/StdReturn,TimeTotal,TotalEnvSteps,TotalEpoch
+80.72932604834212,190.498871994451,1.0,15.74564894718361,-0.41159263253211975,-0.08621543645858765,200.0,190.49887357439314,3.636113977480006,0,198.68158103886404,182.93593209168043,28,3.6361127212231197,5.9166059494018555,0,0

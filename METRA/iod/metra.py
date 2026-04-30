@@ -7,7 +7,7 @@ from garagei import log_performance_ex
 from iod import sac_utils
 from iod.iod import IOD
 import copy
-
+from iod.expwandb import evaluate_and_plot_metra  
 from iod.utils import get_torch_concat_obs, FigManager, get_option_colors, record_video, draw_2d_gaussians
 
 
@@ -331,6 +331,84 @@ class METRA(IOD):
         )
 
     def _evaluate_policy(self, runner):
+        random_trajectories, random_options, random_option_colors = (
+            evaluate_and_plot_metra(self, runner)
+        )
+
+        data = self.process_samples(random_trajectories)
+        last_obs = torch.stack([
+            torch.from_numpy(ob[-1]).float().to(self.device)
+            for ob in data['obs']
+        ])
+
+        option_dists = self.traj_encoder(last_obs)
+
+        option_means = option_dists.mean.detach().cpu().numpy()
+
+        if self.inner:
+            option_stddevs = torch.ones_like(
+                option_dists.stddev.detach().cpu()
+            ).numpy()
+        else:
+            option_stddevs = option_dists.stddev.detach().cpu().numpy()
+
+        option_samples = option_dists.mean.detach().cpu().numpy()
+        option_colors = random_option_colors
+
+        with FigManager(runner, 'PhiPlot') as fm:
+            draw_2d_gaussians(option_means, option_stddevs, option_colors, fm.ax)
+            draw_2d_gaussians(
+                option_samples,
+                [[0.03, 0.03]] * len(option_samples),
+                option_colors,
+                fm.ax,
+                fill=True,
+                use_adaptive_axis=True,
+            )
+
+        eval_option_metrics = {}
+
+        if self.eval_record_video:
+            video_options = random_options[:9]
+
+            video_trajectories = self._get_trajectories(
+                runner,
+                sampler_key='local_option_policy',
+                extras=self._generate_option_extras(video_options),
+                worker_update=dict(
+                    _render=True,
+                    _deterministic_policy=True,
+                ),
+            )
+
+            record_video(
+                runner,
+                'Video_METRA_SampledZ',
+                video_trajectories,
+                skip_frames=self.video_skip_frames,
+            )
+
+        eval_option_metrics.update(
+            runner._env.calc_eval_metrics(
+                random_trajectories,
+                is_option_trajectories=True,
+            )
+        )
+
+        with global_context.GlobalContext({'phase': 'eval', 'policy': 'option'}):
+            log_performance_ex(
+                runner.step_itr,
+                TrajectoryBatch.from_trajectory_list(
+                    self._env_spec,
+                    random_trajectories,
+                ),
+                discount=self.discount,
+                additional_records=eval_option_metrics,
+            )
+
+        self._log_eval_metrics(runner)
+
+    def _evaluate_policy2(self, runner):
         if self.discrete:
             eye_options = np.eye(self.dim_option)
             random_options = []
@@ -363,6 +441,10 @@ class METRA(IOD):
                 _deterministic_policy=True,
             ),
             env_update=dict(_action_noise_std=None),
+        )
+
+        random_trajectories, random_options, random_option_colors = (
+            evaluate_and_plot_metra(self, runner)
         )
 
         with FigManager(runner, 'TrajPlot_RandomZ') as fm:

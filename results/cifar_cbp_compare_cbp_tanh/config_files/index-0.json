@@ -1,0 +1,21 @@
+{
+ "experiment_name": "cifar_cbp_compare_cbp_tanh",
+ "results_dir": "./results",
+ "data_path": "./data",
+ "num_runs": 3,
+ "stepsize": 0.1,
+ "weight_decay": 0.0001,
+ "momentum": 0.9,
+ "use_cbp": true,
+ "replacement_rate": 0.0001,
+ "utility_function": "weight",
+ "maturity_threshold": 100,
+ "activation": "tanh",
+ "reset_head": false,
+ "reset_network": false,
+ "early_stopping": false,
+ "noise_std": 0.0,
+ "invariance_eval_batch_size": 256,
+ "invariance_firing_rate": 0.01,
+ "num_workers": 0
+}

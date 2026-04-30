@@ -112,36 +112,37 @@ def get_argparser():
         choices=['off', 'preset'])
     parser.add_argument('--encoder', type=int, default=0)
 
-    parser.add_argument('--env', type=str, default='maze', choices=[
+    parser.add_argument('--env', type=str, default='ant', choices=[
         'maze', 'half_cheetah', 'ant', 'dmc_cheetah', 'dmc_quadruped',
-        'dmc_humanoid', 'kitchen',
+        'humanoid', 'kitchen',
     ])
     parser.add_argument('--frame_stack', type=int, default=None)
 
     parser.add_argument('--max_path_length', type=int, default=200)
 
-    parser.add_argument('--use_gpu', type=int, default=1, choices=[0, 1])
+    parser.add_argument('--use_gpu', type=int, default=0, choices=[0, 1])
     parser.add_argument('--sample_cpu', type=int, default=1, choices=[0, 1])
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--n_parallel', type=int, default=4)
+    parser.add_argument('--n_parallel', type=int, default=1)
     parser.add_argument('--n_thread', type=int, default=1)
 
-    parser.add_argument('--n_epochs', type=int, default=1000000)
+    parser.add_argument('--n_epochs', type=int, default=1000)
+    parser.add_argument('--total_timesteps', type=int, default=None)
     parser.add_argument('--traj_batch_size', type=int, default=8)
     parser.add_argument('--trans_minibatch_size', type=int, default=256)
-    parser.add_argument('--trans_optimization_epochs', type=int, default=200)
+    parser.add_argument('--trans_optimization_epochs', type=int, default=20)
 
-    parser.add_argument('--n_epochs_per_eval', type=int, default=125)
-    parser.add_argument('--n_epochs_per_log', type=int, default=25)
-    parser.add_argument('--n_epochs_per_save', type=int, default=100)
-    parser.add_argument('--n_epochs_per_pt_save', type=int, default=1000)
-    parser.add_argument('--n_epochs_per_pkl_update', type=int, default=None)
-    parser.add_argument('--num_random_trajectories', type=int, default=48)
+    parser.add_argument('--n_epochs_per_eval', type=int, default=200)
+    parser.add_argument('--n_epochs_per_log', type=int, default=200)
+    parser.add_argument('--n_epochs_per_save', type=int, default=1)
+    parser.add_argument('--n_epochs_per_pt_save', type=int, default=1)
+    parser.add_argument('--n_epochs_per_pkl_update', type=int, default=1)
+    parser.add_argument('--num_random_trajectories', type=int, default=96)
     parser.add_argument('--resume_from_dir', type=str, default=None)
     parser.add_argument('--resume_from_epoch', type=str, default='last')
 
     parser.add_argument('--num_video_repeats', type=int, default=2)
-    parser.add_argument('--eval_record_video', type=int, default=1)
+    parser.add_argument('--eval_record_video', type=int, default=0)
     parser.add_argument('--eval_plot_axis', type=float, default=None, nargs='*')
     parser.add_argument('--video_skip_frames', type=int, default=1)
     parser.add_argument('--dim_option', type=int, default=2)
@@ -156,7 +157,7 @@ def get_argparser():
     parser.add_argument('--context_kl_coef', type=float, default=1.0)
     parser.add_argument('--context_updates_per_epoch', type=int, default=10)
     parser.add_argument('--context_batch_episodes', type=int, default=16)
-    parser.add_argument('--context_replay_size', type=int, default=5000)
+    parser.add_argument('--context_replay_size', type=int, default=3000)
     parser.add_argument('--task_switch_period', type=int, default=0)
     # ==========================================================
 
@@ -189,7 +190,7 @@ def get_argparser():
     parser.add_argument('--cbp_mt_policy', type=int, default=None)
     parser.add_argument('--cbp_mt_q', type=int, default=None)
     parser.add_argument('--cbp_mt_te', type=int, default=None)
-    # =====================================================
+    # ==============================================================
 
     parser.add_argument('--common_lr', type=float, default=1e-4)
     parser.add_argument('--lr_op', type=float, default=None)
@@ -198,10 +199,16 @@ def get_argparser():
     parser.add_argument('--alpha', type=float, default=0.01)
 
     parser.add_argument(
-        '--algo',
+        '--pretrain_algo',
         type=str,
         default='metra',
-        choices=['metra', 'dads', 'ppo'])
+        choices=['metra', 'dads'])
+
+    parser.add_argument(
+        '--hierarchical_algo',
+        type=str,
+        default='ppo',
+        choices=['ppo'])
 
     parser.add_argument('--sac_tau', type=float, default=5e-3)
     parser.add_argument('--sac_lr_q', type=float, default=None)
@@ -209,8 +216,8 @@ def get_argparser():
     parser.add_argument('--sac_discount', type=float, default=0.99)
     parser.add_argument('--sac_scale_reward', type=float, default=1.)
     parser.add_argument('--sac_target_coef', type=float, default=1.)
-    parser.add_argument('--sac_min_buffer_size', type=int, default=10000)
-    parser.add_argument('--sac_max_buffer_size', type=int, default=300000)
+    parser.add_argument('--sac_min_buffer_size', type=int, default=1000)
+    parser.add_argument('--sac_max_buffer_size', type=int, default=3000)
 
     parser.add_argument('--spectral_normalization', type=int, default=0, choices=[0, 1])
 
@@ -231,7 +238,7 @@ def get_argparser():
     parser.add_argument('--inner', type=int, default=1, choices=[0, 1])
     parser.add_argument('--unit_length', type=int, default=1, choices=[0, 1])
 
-    parser.add_argument('--dual_reg', type=int, default=1, choices=[0, 1])
+    parser.add_argument('--dual_reg', type=int, default = 1, choices=[0, 1])
     parser.add_argument('--dual_lam', type=float, default=30)
     parser.add_argument('--dual_slack', type=float, default=1e-3)
     parser.add_argument(
@@ -244,13 +251,41 @@ def get_argparser():
     return parser
 
 
+def get_selected_algo(args, mode=None):
+    local_mode = args.mode if mode is None else mode
+
+    if local_mode == 'pretrain':
+        return args.pretrain_algo
+    elif local_mode == 'hierarchical':
+        return args.hierarchical_algo
+    elif local_mode == 'alternating':
+        raise ValueError(
+            'alternating is a meta-mode; use explicit phase mode '
+            "('pretrain' or 'hierarchical') when selecting an algorithm"
+        )
+    else:
+        raise ValueError(f'Unknown mode: {local_mode}')
+
+
 def get_effective_cp_path(args, mode=None, cp_path=None):
     local_mode = args.mode if mode is None else mode
     local_cp_path = args.cp_path if cp_path is None else cp_path
 
+    # If a directory is given, find latest option_policy*.pt inside it
+    if local_cp_path is not None and os.path.isdir(local_cp_path):
+        policies = sorted(
+            glob.glob(os.path.join(local_cp_path, "option_policy*.pt"))
+        )
+        if len(policies) == 0:
+            raise RuntimeError(f"No option_policy*.pt found in {local_cp_path}")
+        local_cp_path = policies[-1]
+        print("Using latest policy from directory:", local_cp_path)
+
+    # Fallback: auto-find latest run
     if local_mode == "hierarchical" and local_cp_path is None:
         local_cp_path = find_latest_policy()
         print("Using latest pretrained policy:", local_cp_path)
+
     return local_cp_path
 
 
@@ -288,7 +323,14 @@ def task_params_fn(env):
     return np.array([0.0], dtype=np.float32)
 
 
-def get_exp_name():
+def get_exp_name(mode=None):
+    local_mode = args.mode if mode is None else mode
+
+    if local_mode == 'alternating':
+        selected_algo = f'{args.pretrain_algo}_to_{args.hierarchical_algo}'
+    else:
+        selected_algo = get_selected_algo(args, mode=local_mode)
+
     exp_name = ''
     exp_name += f'sd{args.seed:03d}_'
     if 'SLURM_JOB_ID' in os.environ:
@@ -301,12 +343,12 @@ def get_exp_name():
     exp_name += f'{g_start_time}'
 
     exp_name += '_' + args.env
-    exp_name += '_' + args.algo
-    if args.lifelong:
+    exp_name += '_' + selected_algo
+
+    if args.lifelong and args.pretrain_algo == 'metra':
         exp_name += f'_lifelong_ctx{args.dim_context}'
 
     return exp_name, exp_name_prefix
-
 
 def get_log_dir():
     exp_name, _ = get_exp_name()
@@ -382,12 +424,18 @@ def make_env(args, max_path_length, mode=None, cp_path=None):
             max_path_length=max_path_length,
             action_range=0.2,
         )
+    elif args.env == 'humanoid':
+        from GymnasiumConv import HumanoidEnv
+        env = HumanoidEnv(render_hw=100)
+
     elif args.env == 'half_cheetah':
         from envs.mujoco.half_cheetah_env import HalfCheetahEnv
         env = HalfCheetahEnv(render_hw=100)
+
     elif args.env == 'ant':
-        from envs.mujoco.ant_env import AntEnv
+        from GymnasiumConv import AntEnv
         env = AntEnv(render_hw=100)
+
     elif args.env.startswith('dmc'):
         from envs.custom_dmc_tasks import dmc
         from envs.custom_dmc_tasks.pixel_wrappers import RenderWrapper
@@ -463,10 +511,6 @@ def make_env(args, max_path_length, mode=None, cp_path=None):
     return env
 
 
-# =========================================================
-# CBP helpers
-# =========================================================
-
 def _act_type_from_args(args):
     if args.model_master_nonlinearity == "tanh":
         return "tanh"
@@ -499,24 +543,36 @@ def save_option_policy_for_hierarchical(algo, save_dir, cycle):
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f'option_policy_cycle_{cycle:06d}.pt')
 
-    torch.save({
+    payload = {
         'discrete': algo.discrete,
         'dim_option': algo.dim_option,
         'policy': algo.option_policy,
-    }, save_path)
+        'dim_context': getattr(algo, 'dim_context', 0),
+        'use_context_in_phi': getattr(algo, 'use_context_in_phi', False),
+        'deterministic_rollout_context': getattr(algo, 'deterministic_rollout_context', True),
+    }
 
+    if getattr(algo, 'dim_context', 0) > 0:
+        payload.update({
+            'context_encoder': getattr(algo, 'context_encoder', None),
+            'context_prior_net': getattr(algo, 'context_prior_net', None),
+            'context_decoder': getattr(algo, 'context_decoder', None),
+        })
+
+    torch.save(payload, save_path)
     return save_path
 
-
 def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
-    local_mode = args.mode if mode is None else mode
-    local_cp_path = get_effective_cp_path(args, mode=local_mode, cp_path=cp_path)
 
+    local_mode = args.mode if mode is None else mode
+    selected_algo = get_selected_algo(args, mode=local_mode)
+    local_cp_path = get_effective_cp_path(args, mode=local_mode, cp_path=cp_path)
     runner = OptionLocalRunner(ctxt)
 
     max_path_length = args.max_path_length
     if local_cp_path is not None and local_mode == 'hierarchical':
-        max_path_length *= args.cp_multi_step
+        assert args.cp_multi_step > 0
+        max_path_length = max(1, args.max_path_length // args.cp_multi_step)
 
     contextualized_make_env = functools.partial(
         make_env,
@@ -540,7 +596,6 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         pixel_shape = None
 
     device = torch.device('cuda' if args.use_gpu else 'cpu')
-
     master_dims = [args.model_master_dim] * args.model_master_num_layers
 
     if args.model_master_nonlinearity == 'relu':
@@ -550,8 +605,11 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
     else:
         nonlinearity = None
 
-    obs_dim = env.spec.observation_space.flat_dim
-    action_dim = env.spec.action_space.flat_dim
+    obs_space = env.spec.observation_space
+    action_space = env.spec.action_space
+
+    obs_dim = getattr(obs_space, 'flat_dim', int(np.prod(obs_space.shape)))
+    action_dim = getattr(action_space, 'flat_dim', int(np.prod(action_space.shape)))
 
     if args.encoder:
         def make_encoder(**kwargs):
@@ -570,8 +628,9 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         with_encoder = None
         module_obs_dim = obs_dim
 
-    if args.algo == 'metra' and args.lifelong and args.dim_context > 0:
-        from iod.context_models import ContextEncoder, ContextPrior
+    if selected_algo == 'metra' and args.lifelong and args.dim_context > 0:
+        from iod.context_models import ContextEncoder, ContextPrior, ContextDecoder
+
         context_encoder = ContextEncoder(
             obs_dim=module_obs_dim,
             act_dim=action_dim,
@@ -582,8 +641,14 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
             z_dim=args.dim_context,
             hidden=args.context_hidden,
         )
+        context_decoder = ContextDecoder(
+            obs_dim=module_obs_dim,
+            act_dim=action_dim,
+            z_dim=args.dim_context,
+            hidden=args.context_hidden,
+        )
     else:
-        context_encoder, context_prior = None, None
+        context_encoder, context_prior, context_decoder = None, None, None
 
     option_info = {
         'dim_option': args.dim_option,
@@ -610,11 +675,15 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
 
     context_dim = args.dim_context if args.lifelong else 0
 
-    if args.algo == 'ppo':
+    if selected_algo == 'ppo' and local_mode == 'hierarchical' and local_cp_path is not None:
+        cp_meta = torch.load(local_cp_path, map_location='cpu')
+        context_dim = cp_meta.get('dim_context', context_dim)
+
+    if selected_algo == 'ppo':
         policy_q_input_dim = module_obs_dim
     else:
         policy_q_input_dim = module_obs_dim + args.dim_option + context_dim
-
+        
     policy_module = module_cls(
         input_dim=policy_q_input_dim,
         output_dim=action_dim,
@@ -627,7 +696,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
     option_policy = PolicyEx(**policy_kwargs)
 
     traj_encoder = None
-    if args.algo in ['metra', 'dads']:
+    if selected_algo in ['metra', 'dads']:
         traj_encoder_obs_dim = module_obs_dim + context_dim
 
         module_cls, module_kwargs = get_gaussian_module_construction(
@@ -656,7 +725,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         min_std=1e-6,
         max_std=1e6,
     )
-    if args.algo in ['metra', 'dads'] and args.dual_dist == 's2_from_s':
+    if selected_algo in ['metra', 'dads'] and args.dual_dist == 's2_from_s':
         dist_predictor = module_cls(**module_kwargs)
     else:
         dist_predictor = None
@@ -676,7 +745,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         min_std=0.3,
         max_std=10.0,
     )
-    if args.algo == 'dads':
+    if selected_algo == 'dads':
         skill_dynamics = module_cls(**module_kwargs)
     else:
         skill_dynamics = None
@@ -688,7 +757,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
 
     qf1 = qf2 = log_alpha = None
     vf = None
-    if args.algo in ['metra', 'dads']:
+    if selected_algo in ['metra', 'dads']:
         qf1 = ContinuousMLPQFunctionEx(
             obs_dim=policy_q_input_dim,
             action_dim=action_dim,
@@ -709,7 +778,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
 
         log_alpha = ParameterModule(torch.Tensor([np.log(args.alpha)]))
 
-    elif args.algo == 'ppo':
+    elif selected_algo == 'ppo':
         vf = MLPModule(
             input_dim=policy_q_input_dim,
             output_dim=1,
@@ -741,6 +810,21 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         n_te = 0 if traj_encoder is None else add_cbp_to_model(
             traj_encoder, **_cbp_kwargs(rr_te, mt_te))
 
+        n_ctx_enc = 0
+        n_ctx_prior = 0
+
+        if context_encoder is not None:
+            n_ctx_enc = add_cbp_to_model(
+                context_encoder,
+                **_cbp_kwargs(rr_te, mt_te)
+            )
+
+        if context_prior is not None:
+            n_ctx_prior = add_cbp_to_model(
+                context_prior,
+                **_cbp_kwargs(rr_te, mt_te)
+            )
+
         n_q1 = n_q2 = n_vf = 0
         if qf1 is not None:
             n_q1 = add_cbp_to_model(qf1, **_cbp_kwargs(rr_q, mt_q))
@@ -750,7 +834,15 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
             n_vf = add_cbp_to_model(vf, **_cbp_kwargs(rr_q, mt_q))
 
         print("CBP patched sequentials:", dict(
-            policy=n_pol, traj_encoder=n_te, qf1=n_q1, qf2=n_q2, vf=n_vf))
+            policy=n_pol,
+            traj_encoder=n_te,
+            qf1=n_q1,
+            qf2=n_q2,
+            vf=n_vf,
+            context_encoder=n_ctx_enc,
+            context_prior=n_ctx_prior,
+
+        ))
 
     optimizers = {
         'option_policy': torch.optim.Adam([
@@ -767,8 +859,15 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         ])
 
     if context_encoder is not None:
+        context_params = (
+            list(context_encoder.parameters()) +
+            list(context_prior.parameters())
+        )
+        if context_decoder is not None:
+            context_params += list(context_decoder.parameters())
+
         optimizers['context'] = torch.optim.Adam(
-            list(context_encoder.parameters()) + list(context_prior.parameters()),
+            context_params,
             lr=_finalize_lr(args, args.context_lr),
         )
 
@@ -801,9 +900,15 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         max_optimization_epochs=None,
     )
 
+    algo_name = {
+    'metra': 'LifelongMETRA' if args.lifelong and selected_algo == 'metra' else 'METRA',
+    'dads': 'DADS',
+    'ppo': 'PPO',
+    }[selected_algo]
+
     algo_kwargs = dict(
         env_name=args.env,
-        algo=args.algo,
+        algo=selected_algo,
         env_spec=env.spec,
         option_policy=option_policy,
         traj_encoder=traj_encoder,
@@ -813,6 +918,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         optimizer=optimizer,
         alpha=args.alpha,
         max_path_length=args.max_path_length,
+        total_timesteps=args.total_timesteps,
         n_epochs_per_eval=args.n_epochs_per_eval,
         n_epochs_per_log=args.n_epochs_per_log,
         n_epochs_per_tb=args.n_epochs_per_log,
@@ -829,7 +935,7 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         eval_record_video=args.eval_record_video,
         video_skip_frames=args.video_skip_frames,
         eval_plot_axis=args.eval_plot_axis,
-        name='METRA',
+        name=algo_name,
         device=device,
         sample_cpu=args.sample_cpu,
         num_train_per_epoch=1,
@@ -860,32 +966,34 @@ def build_runner_and_algo(args, ctxt=None, mode=None, cp_path=None):
         pixel_shape=pixel_shape,
     )
 
-    if args.algo == 'metra':
+    if selected_algo == 'metra':
         if args.lifelong:
             algo = LifelongMETRA(
-                **algo_kwargs,
-                **skill_common_args,
-                dim_context=args.dim_context,
-                use_context_in_phi=True,
-                task_switch_period=args.task_switch_period,
-                context_encoder=context_encoder,
-                context_prior_net=context_prior,
-                context_kl_coef=args.context_kl_coef,
-                context_updates_per_epoch=args.context_updates_per_epoch,
-                context_batch_episodes=args.context_batch_episodes,
-                context_replay_size=args.context_replay_size,
-            )
+            **algo_kwargs,
+            **skill_common_args,
+            dim_context=args.dim_context,
+            use_context_in_phi=True,
+            task_switch_period=args.task_switch_period,
+            context_encoder=context_encoder,
+            context_prior_net=context_prior,
+            context_decoder=context_decoder,
+            context_kl_coef=args.context_kl_coef,
+            recon_coef=1.0,
+            context_updates_per_epoch=args.context_updates_per_epoch,
+            context_batch_episodes=args.context_batch_episodes,
+            context_replay_size=args.context_replay_size,
+        )
         else:
             algo = METRA(
                 **algo_kwargs,
                 **skill_common_args,
             )
-    elif args.algo == 'dads':
+    elif selected_algo == 'dads':
         algo = DADS(
             **algo_kwargs,
             **skill_common_args,
         )
-    elif args.algo == 'ppo':
+    elif selected_algo == 'ppo':
         algo = PPO(
             **algo_kwargs,
             vf=vf,
@@ -924,8 +1032,6 @@ def run_alternating(ctxt=None):
     block = args.alternate_every
     assert block > 0, '--alternate_every must be > 0'
 
-    # Interprets n_epochs as total epochs across BOTH phases.
-    # Each cycle consumes: block pretrain + block hierarchical.
     n_cycles = args.n_epochs // (2 * block)
     if n_cycles <= 0:
         raise ValueError(
@@ -938,56 +1044,89 @@ def run_alternating(ctxt=None):
         f'{block} pretrain epochs + {block} hierarchical epochs per cycle.'
     )
 
-    # Persistent pretraining state
-    pretrain_bundle = build_runner_and_algo(
-        args=args,
-        ctxt=ctxt,
-        mode='pretrain',
-        cp_path=None,
-    )
+    run_dir = ctxt.snapshot_dir
+    pretrain_snapshot_dir = os.path.join(run_dir, 'pretrain_snapshots')
+    hier_snapshot_dir = os.path.join(run_dir, 'hierarchical_snapshots')
+    alt_cp_dir = os.path.join(run_dir, 'alternating_cp_exports')
 
-    alt_cp_dir = os.path.join(get_log_dir(), 'alternating_cp_exports')
+    os.makedirs(pretrain_snapshot_dir, exist_ok=True)
+    os.makedirs(hier_snapshot_dir, exist_ok=True)
     os.makedirs(alt_cp_dir, exist_ok=True)
+
+    pretrain_resume_dir = None
 
     for cycle in range(n_cycles):
         dowel.logger.log(
             f'=== Alternating cycle {cycle + 1}/{n_cycles}: PRETRAIN ===')
 
-        # Continual pretraining: same runner/algo reused
-        pretrain_bundle['runner'].train(
-            n_epochs=block,
-            batch_size=args.traj_batch_size,
+        pretrain_bundle = build_runner_and_algo(
+            args=args,
+            ctxt=ctxt,
+            mode='pretrain',
+            cp_path=None,
         )
+        pretrain_bundle['runner']._snapshotter._snapshot_dir = pretrain_snapshot_dir
 
-        cp_path = save_option_policy_for_hierarchical(
-            pretrain_bundle['algo'],
-            alt_cp_dir,
-            cycle,
-        )
-        dowel.logger.log(f'Saved child policy checkpoint: {cp_path}')
+        try:
+            if pretrain_resume_dir is not None:
+                train_args = pretrain_bundle['runner'].restore(
+                    from_dir=pretrain_resume_dir,
+                    make_env=pretrain_bundle['runner']._make_env,
+                    from_epoch='last',
+                )
+                target_epoch = train_args.start_epoch + block
+                pretrain_bundle['runner'].resume_train(
+                    n_epochs=target_epoch,
+                    batch_size=args.traj_batch_size,
+                )
+            else:
+                pretrain_bundle['runner'].train(
+                    n_epochs=block,
+                    batch_size=args.traj_batch_size,
+                )
+
+            pretrain_bundle['runner'].save(cycle + 1, pkl_update=True)
+
+            cp_path = save_option_policy_for_hierarchical(
+                pretrain_bundle['algo'],
+                alt_cp_dir,
+                cycle,
+            )
+            dowel.logger.log(f'Saved child policy checkpoint: {cp_path}')
+
+            pretrain_resume_dir = pretrain_snapshot_dir
+
+        finally:
+            pretrain_bundle['runner']._shutdown_worker()
+            del pretrain_bundle
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         dowel.logger.log(
             f'=== Alternating cycle {cycle + 1}/{n_cycles}: HIERARCHICAL ===')
 
-        # Fresh hierarchical state every cycle
         hierarchical_bundle = build_runner_and_algo(
             args=args,
             ctxt=ctxt,
             mode='hierarchical',
             cp_path=cp_path,
         )
+        cur_hier_dir = os.path.join(hier_snapshot_dir, f'cycle_{cycle:06d}')
+        os.makedirs(cur_hier_dir, exist_ok=True)
+        hierarchical_bundle['runner']._snapshotter._snapshot_dir = cur_hier_dir
 
-        hierarchical_bundle['runner'].train(
-            n_epochs=block,
-            batch_size=args.traj_batch_size,
-        )
-
-        # Fully discard the hierarchical state before next cycle
-        del hierarchical_bundle
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
+        try:
+            hierarchical_bundle['runner'].train(
+                n_epochs=block,
+                batch_size=args.traj_batch_size,
+            )
+        finally:
+            hierarchical_bundle['runner']._shutdown_worker()
+            del hierarchical_bundle
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
 @wrap_experiment(log_dir=get_log_dir(), name=get_exp_name()[0])
 def run(ctxt=None):

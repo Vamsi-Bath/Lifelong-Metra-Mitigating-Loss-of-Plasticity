@@ -1,0 +1,56 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.8.20
+    cli_version: 0.15.4
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1775080672.122571
+    t:
+      1:
+      - 55
+      2:
+      - 55
+      3:
+      - 2
+      - 13
+      - 23
+      4: 3.8.20
+      5: 0.15.4
+      8:
+      - 3
+      - 5
+    visualize:
+      learning_curve:
+        panel_type: Vega2
+        panel_config:
+          panelDefId: wandb/lineseries/v0
+          fieldSettings:
+            step: step
+            lineKey: lineKey
+            lineVal: lineVal
+          stringSettings:
+            title: Shadow Hand Sparse
+            xname: Timesteps
+          transform:
+            name: tableWithLeafColNames
+          userQuery:
+            queryFields:
+            - name: runSets
+              args:
+              - name: runSets
+                value: ${runSets}
+              fields:
+              - name: id
+                fields: []
+              - name: name
+                fields: []
+              - name: _defaultColorIndex
+                fields: []
+              - name: summaryTable
+                args:
+                - name: tableKey
+                  value: learning_curve_table
+                fields: []

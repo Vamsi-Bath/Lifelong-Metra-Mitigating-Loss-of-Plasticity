@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+from unittest import runner
 
 import numpy as np
 import torch
@@ -43,6 +44,7 @@ class IOD(RLAlgorithm):
             video_skip_frames,
             eval_plot_axis,
             name='IOD',
+            total_timesteps = None,
             device=torch.device('cpu'),
             sample_cpu=True,
             num_train_per_epoch=1,
@@ -63,7 +65,7 @@ class IOD(RLAlgorithm):
         self.device = device
         self.sample_cpu = sample_cpu
         self.option_policy = option_policy.to(self.device)
-        self.traj_encoder = traj_encoder.to(self.device)
+        self.traj_encoder = traj_encoder.to(self.device) if traj_encoder is not None else None
         self.dual_lam = dual_lam.to(self.device)
         self.param_modules = {
             'traj_encoder': self.traj_encoder,
@@ -81,6 +83,7 @@ class IOD(RLAlgorithm):
         self.name = name
 
         self.dim_option = dim_option
+        self.total_timesteps = total_timesteps
 
         self._num_train_per_epoch = num_train_per_epoch
         self._env_spec = env_spec
@@ -119,7 +122,8 @@ class IOD(RLAlgorithm):
         self.discrete = discrete
         self.unit_length = unit_length
 
-        self.traj_encoder.eval()
+        if self.traj_encoder is not None:
+            self.traj_encoder.eval()
 
     @property
     def policy(self):
@@ -127,74 +131,133 @@ class IOD(RLAlgorithm):
 
     def all_parameters(self):
         for m in self.param_modules.values():
+            if m is None:
+                continue
             for p in m.parameters():
                 yield p
 
-    def train_once(self, itr, paths, runner, extra_scalar_metrics={}):
-        logging_enabled = ((runner.step_itr + 1) % self.n_epochs_per_log == 0)
+    def _flatten_env_info_values(self, paths, key):
+        values = []
+        for path in paths:
+            env_infos = path['env_infos']
+            if key in env_infos:
+                values.extend(np.asarray(env_infos[key]).reshape(-1).tolist())
+        return values
 
-        data = self.process_samples(paths)
+    def _record_stats_if_any(self, out_dict, values, prefix):
+        if len(values) == 0:
+            return
+        arr = np.asarray(values, dtype=np.float32)
+        out_dict[f'{prefix}Mean'] = float(np.mean(arr))
+        out_dict[f'{prefix}Std'] = float(np.std(arr))
+        out_dict[f'{prefix}Max'] = float(np.max(arr))
+        out_dict[f'{prefix}Min'] = float(np.min(arr))
 
-        time_computing_metrics = [0.0]
-        time_training = [0.0]
+    def _collect_hierarchical_metrics(self, paths):
+        hier_metrics = {}
 
-        with MeasureAndAccTime(time_training):
-            tensors = self._train_once_inner(data)
+        metric_specs = [
+            ('cp_action_norm', 'HierCpActionNorm'),
+            ('low_level_reward_sum', 'HierLowLevelRewardSum'),
+            ('low_level_reward_mean', 'HierLowLevelReward'),
+            ('low_level_steps', 'HierLowLevelSteps'),
+            ('low_level_action_norm_mean', 'HierLowLevelActionNorm'),
+            ('context_norm', 'HierContextNorm'),
+            ('posterior_context_norm', 'HierPosteriorContextNorm'),
+            ('context_drift', 'HierContextDrift'),
+        ]
 
-        performence = log_performance_ex(
-            itr,
-            TrajectoryBatch.from_trajectory_list(self._env_spec, paths),
-            discount=self.discount,
-        )
-        discounted_returns = performence['discounted_returns']
-        undiscounted_returns = performence['undiscounted_returns']
+        for env_key, metric_prefix in metric_specs:
+            values = self._flatten_env_info_values(paths, env_key)
+            self._record_stats_if_any(hier_metrics, values, metric_prefix)
 
-        if logging_enabled:
-            prefix_tabular = global_context.get_metric_prefix()
-            with dowel_wrapper.get_tabular().prefix(prefix_tabular + self.name + '/'), \
-                    dowel_wrapper.get_tabular('plot').prefix(prefix_tabular + self.name + '/'):
+        return hier_metrics
 
-                def _record_scalar(key, val):
-                    dowel_wrapper.get_tabular().record(key, val)
+    def train_once(self, itr, paths, runner, extra_scalar_metrics=None):
+            if extra_scalar_metrics is None:
+                extra_scalar_metrics = {}
 
-                def _record_histogram(key, val):
-                    dowel_wrapper.get_tabular('plot').record(key, Histogram(val))
+            logging_enabled = ((runner.step_itr + 1) % self.n_epochs_per_log == 0)
 
-                for k in tensors.keys():
-                    if tensors[k].numel() == 1:
-                        _record_scalar(f'{k}', tensors[k].item())
-                    else:
-                        _record_scalar(
-                            f'{k}',
-                            np.array2string(tensors[k].detach().cpu().numpy(), suppress_small=True)
-                        )
+            data = self.process_samples(paths)
 
-                with torch.no_grad():
-                    total_norm = compute_total_norm(self.all_parameters())
-                    _record_scalar('TotalGradNormAll', total_norm.item())
-                    for key, module in self.param_modules.items():
-                        total_norm = compute_total_norm(module.parameters())
-                        _record_scalar(
-                            f'TotalGradNorm{key.replace("_", " ").title().replace(" ", "")}',
-                            total_norm.item()
-                        )
+            hier_metrics = self._collect_hierarchical_metrics(paths)
 
-                for k, v in extra_scalar_metrics.items():
-                    _record_scalar(k, v)
+            extra_scalar_metrics = dict(extra_scalar_metrics)
+            extra_scalar_metrics.update(hier_metrics)
 
-                _record_scalar('TimeComputingMetrics', time_computing_metrics[0])
-                _record_scalar('TimeTraining', time_training[0])
+            time_computing_metrics = [0.0]
+            time_training = [0.0]
 
-                path_lengths = [len(path['actions']) for path in paths]
-                _record_scalar('PathLengthMean', np.mean(path_lengths))
-                _record_scalar('PathLengthMax', np.max(path_lengths))
-                _record_scalar('PathLengthMin', np.min(path_lengths))
+            with MeasureAndAccTime(time_training):
+                tensors = self._train_once_inner(data)
 
-                _record_histogram('ExternalDiscountedReturns', np.asarray(discounted_returns))
-                _record_histogram('ExternalUndiscountedReturns', np.asarray(undiscounted_returns))
+            performance = log_performance_ex(
+                itr,
+                TrajectoryBatch.from_trajectory_list(self._env_spec, paths),
+                discount=self.discount,
+            )
+            discounted_returns = performance['discounted_returns']
+            undiscounted_returns = performance['undiscounted_returns']
 
-        return np.mean(undiscounted_returns)
+            if logging_enabled:
+                prefix_tabular = global_context.get_metric_prefix()
+                with dowel_wrapper.get_tabular().prefix(prefix_tabular + self.name + '/'), \
+                        dowel_wrapper.get_tabular('plot').prefix(prefix_tabular + self.name + '/'):
 
+                    def _record_scalar(key, val):
+                        dowel_wrapper.get_tabular().record(key, val)
+
+                    def _record_histogram(key, val):
+                        dowel_wrapper.get_tabular('plot').record(key, Histogram(val))
+
+                    for k, v in tensors.items():
+                        if v.numel() == 1:
+                            _record_scalar(k, v.item())
+                        else:
+                            _record_scalar(
+                                k,
+                                np.array2string(v.detach().cpu().numpy(), suppress_small=True)
+                            )
+
+                    with torch.no_grad():
+                        total_norm = compute_total_norm(self.all_parameters())
+                        _record_scalar('TotalGradNormAll', total_norm.item())
+
+                        for key, module in self.param_modules.items():
+                            if module is None:
+                                continue
+                            module_norm = compute_total_norm(module.parameters())
+                            _record_scalar(
+                                f'TotalGradNorm{key.replace("_", " ").title().replace(" ", "")}',
+                                module_norm.item()
+                            )
+
+                    for k, v in extra_scalar_metrics.items():
+                        _record_scalar(k, v)
+
+                    _record_scalar('TimeComputingMetrics', time_computing_metrics[0])
+                    _record_scalar('TimeTraining', time_training[0])
+
+                    path_lengths = [len(path['actions']) for path in paths]
+                    steps_this_epoch = sum(path_lengths)
+
+                    if not hasattr(self, "total_env_steps"):
+                        self.total_env_steps = 0
+
+                    self.total_env_steps += steps_this_epoch
+                    runner._stats.total_env_steps = self.total_env_steps
+                    _record_scalar('StepsThisEpoch', steps_this_epoch)
+                    _record_scalar('TotalEnvSteps', self.total_env_steps)
+                    _record_scalar('PathLengthMean', float(np.mean(path_lengths)))
+                    _record_scalar('PathLengthMax', float(np.max(path_lengths)))
+                    _record_scalar('PathLengthMin', float(np.min(path_lengths)))
+
+                    _record_histogram('ExternalDiscountedReturns', np.asarray(discounted_returns))
+                    _record_histogram('ExternalUndiscountedReturns', np.asarray(undiscounted_returns))
+
+            return float(np.mean(undiscounted_returns))
+    
     def train(self, runner):
         last_return = None
 
@@ -209,19 +272,24 @@ class IOD(RLAlgorithm):
             ):
                 for p in self.policy.values():
                     p.eval()
-                self.traj_encoder.eval()
+                if self.traj_encoder is not None:
+                    self.traj_encoder.eval()
 
                 if self.n_epochs_per_eval != 0 and runner.step_itr % self.n_epochs_per_eval == 0:
                     self._evaluate_policy(runner)
 
                 for p in self.policy.values():
                     p.train()
-                self.traj_encoder.train()
+                if self.traj_encoder is not None:
+                    self.traj_encoder.train()
 
                 for _ in range(self._num_train_per_epoch):
                     time_sampling = [0.0]
                     with MeasureAndAccTime(time_sampling):
                         runner.step_path = self._get_train_trajectories(runner)
+
+                    if self.total_timesteps is not None and runner._stats.total_env_steps >= self.total_timesteps:
+                        return last_return
 
                     last_return = self.train_once(
                         runner.step_itr,
@@ -321,7 +389,29 @@ class IOD(RLAlgorithm):
                     )
                 )
             # ===============================================================
+            if 'cp_action_norm' in path['env_infos']:
+                data['cp_action_norm'].append(path['env_infos']['cp_action_norm'])
 
+            if 'low_level_reward_sum' in path['env_infos']:
+                data['low_level_reward_sum'].append(path['env_infos']['low_level_reward_sum'])
+
+            if 'low_level_steps' in path['env_infos']:
+                data['low_level_steps'].append(path['env_infos']['low_level_steps'])
+
+            if 'context_norm' in path['env_infos']:
+                data['context_norm'].append(path['env_infos']['context_norm'])
+
+            if 'context_drift' in path['env_infos']:
+                data['context_drift'].append(path['env_infos']['context_drift'])
+
+            if 'low_level_reward_mean' in path['env_infos']:
+                data['low_level_reward_mean'].append(path['env_infos']['low_level_reward_mean'])
+
+            if 'low_level_action_norm_mean' in path['env_infos']:
+                data['low_level_action_norm_mean'].append(path['env_infos']['low_level_action_norm_mean'])
+
+            if 'posterior_context_norm' in path['env_infos']:
+                data['posterior_context_norm'].append(path['env_infos']['posterior_context_norm'])
         return data
 
     def _get_policy_param_values(self, key):

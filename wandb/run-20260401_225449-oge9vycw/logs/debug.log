@@ -1,0 +1,34 @@
+2026-04-01 22:54:49,531 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Current SDK version is 0.15.4
+2026-04-01 22:54:49,531 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Configure stats pid to 24812
+2026-04-01 22:54:49,532 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Loading settings from C:\Users\vamsi\.config\wandb\settings
+2026-04-01 22:54:49,532 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Loading settings from C:\Users\vamsi\VamsiResearchProject\wandb\settings
+2026-04-01 22:54:49,532 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2026-04-01 22:54:49,532 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2026-04-01 22:54:49,533 INFO    MainThread:24812 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'METRA\\tests\\alternating_experiment.py', 'program': 'c:\\Users\\vamsi\\VamsiResearchProject\\METRA\\tests\\alternating_experiment.py'}
+2026-04-01 22:54:49,533 INFO    MainThread:24812 [wandb_init.py:_log_setup():507] Logging user logs to C:\Users\vamsi\VamsiResearchProject\wandb\run-20260401_225449-oge9vycw\logs\debug.log
+2026-04-01 22:54:49,533 INFO    MainThread:24812 [wandb_init.py:_log_setup():508] Logging internal logs to C:\Users\vamsi\VamsiResearchProject\wandb\run-20260401_225449-oge9vycw\logs\debug-internal.log
+2026-04-01 22:54:49,533 INFO    MainThread:24812 [wandb_init.py:init():547] calling init triggers
+2026-04-01 22:54:49,533 INFO    MainThread:24812 [wandb_init.py:init():554] wandb.init called with sweep_config: {}
+config: {}
+2026-04-01 22:54:49,535 INFO    MainThread:24812 [wandb_init.py:init():596] starting backend
+2026-04-01 22:54:49,535 INFO    MainThread:24812 [wandb_init.py:init():600] setting up manager
+2026-04-01 22:54:49,536 INFO    MainThread:24812 [backend.py:_multiprocessing_setup():106] multiprocessing start_methods=spawn, using: spawn
+2026-04-01 22:54:49,536 INFO    MainThread:24812 [wandb_init.py:init():606] backend started and connected
+2026-04-01 22:54:49,536 INFO    MainThread:24812 [wandb_init.py:init():703] updated telemetry
+2026-04-01 22:54:49,583 INFO    MainThread:24812 [wandb_init.py:init():736] communicating run to backend with 60.0 second timeout
+2026-04-01 22:54:50,184 INFO    MainThread:24812 [wandb_run.py:_on_init():2176] communicating current version
+2026-04-01 22:54:50,233 INFO    MainThread:24812 [wandb_run.py:_on_init():2185] got version response upgrade_message: "wandb version 0.25.1 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2026-04-01 22:54:50,233 INFO    MainThread:24812 [wandb_init.py:init():787] starting run threads in backend
+2026-04-01 22:54:55,675 INFO    MainThread:24812 [wandb_run.py:_console_start():2155] atexit reg
+2026-04-01 22:54:55,676 INFO    MainThread:24812 [wandb_run.py:_redirect():2010] redirect: SettingsConsole.WRAP_RAW
+2026-04-01 22:54:55,676 INFO    MainThread:24812 [wandb_run.py:_redirect():2075] Wrapping output streams.
+2026-04-01 22:54:55,676 INFO    MainThread:24812 [wandb_run.py:_redirect():2100] Redirects installed.
+2026-04-01 22:54:55,676 INFO    MainThread:24812 [wandb_init.py:init():828] run started, returning control to user process
+2026-04-01 22:54:55,690 INFO    MainThread:24812 [wandb_run.py:_finish():1890] finishing run vamsikrishnavishnumolakala-university-of-bath/ResearchProject/oge9vycw
+2026-04-01 22:54:55,691 INFO    MainThread:24812 [wandb_run.py:_atexit_cleanup():2124] got exitcode: 0
+2026-04-01 22:54:55,691 INFO    MainThread:24812 [wandb_run.py:_restore():2107] restore
+2026-04-01 22:54:55,691 INFO    MainThread:24812 [wandb_run.py:_restore():2113] restore done
+2026-04-01 22:55:02,765 INFO    MainThread:24812 [wandb_run.py:_footer_history_summary_info():3467] rendering history
+2026-04-01 22:55:02,767 INFO    MainThread:24812 [wandb_run.py:_footer_history_summary_info():3499] rendering summary
+2026-04-01 22:55:02,767 INFO    MainThread:24812 [wandb_run.py:_footer_sync_info():3426] logging synced files

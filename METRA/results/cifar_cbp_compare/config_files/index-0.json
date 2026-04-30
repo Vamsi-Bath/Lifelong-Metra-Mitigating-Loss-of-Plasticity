@@ -1,0 +1,91 @@
+{
+ "experiment_name": "cifar_cbp_compare",
+ "results_dir": "./results",
+ "data_path": "./data",
+ "num_runs": 3,
+ "stepsize": [
+  0.1,
+  0.1,
+  0.1,
+  0.1
+ ],
+ "weight_decay": [
+  0.0001,
+  0.0001,
+  0.0001,
+  0.0001
+ ],
+ "momentum": [
+  0.9,
+  0.9,
+  0.9,
+  0.9
+ ],
+ "use_cbp": [
+  false,
+  true,
+  true,
+  true
+ ],
+ "replacement_rate": [
+  0.0,
+  0.0001,
+  0.0001,
+  0.0001
+ ],
+ "utility_function": [
+  "weight",
+  "weight",
+  "weight",
+  "weight"
+ ],
+ "maturity_threshold": [
+  0,
+  100,
+  100,
+  100
+ ],
+ "activation": [
+  "relu",
+  "relu",
+  "tanh",
+  "crelu"
+ ],
+ "reset_head": [
+  false,
+  false,
+  false,
+  false
+ ],
+ "reset_network": [
+  false,
+  false,
+  false,
+  false
+ ],
+ "early_stopping": [
+  false,
+  false,
+  false,
+  false
+ ],
+ "noise_std": [
+  0.0,
+  0.0,
+  0.0,
+  0.0
+ ],
+ "invariance_eval_batch_size": [
+  256,
+  256,
+  256,
+  256
+ ],
+ "invariance_firing_rate": [
+  0.01,
+  0.01,
+  0.01,
+  0.01
+ ],
+ "num_workers": 1
+}

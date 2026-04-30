@@ -1,13 +1,20 @@
-# METRA: Scalable Unsupervised RL with Metric-Aware Abstraction
+Code Accreditation
 
-This repository contains the official implementation of **METRA: Scalable Unsupervised RL with Metric-Aware Abstraction**.
-The implementation is based on
-[Lipschitz-constrained Unsupervised Skill Discovery](https://github.com/seohongpark/LSD).
+Metra has been used as the backbone for my lifelong Metra implementation and I used the original Metra Implementation but the code has been modified to suit my experiments and with gym deprecated  https://github.com/seohongpark/METRA
 
-Visit [our project page](https://seohong.me/projects/metra/) for more results including videos.
+The continual backpropagation code has been used and also the permuted MNIST and Incremental CIFAR experiment ideas have been adopted and have been modified from their implementations to fit my experiments
+https://github.com/shibhansh/loss-of-plasticity
 
-## Requirements
-- Python 3.8
+My implementation of RND and PPO were borrowed from my dissertation last year which at the time was cited from my group reinforcement learning project: VAMSI https://github.com/pkr895/Reinforcement-Learning
+
+For the hierarchical control PPO I have borrowed code from the contrastive successor features. I have used the child policy wrapper from
+https://princeton-rl.github.io/contrastive-successor-features/
+https://github.com/mturan33/isaac-g1-ulc  only the networks using tanh and CReLU have been borrowed here the rest of this PPO implementation is taken from my RND implementation
+
+On top of my RND implementation, we also used the RLeXplore RND baseline code used in the METRA paper https://github.com/RLE-Foundation/RLeXplore
+
+
+For everything to run, cd to METRA
 
 ## Installation
 
@@ -19,30 +26,46 @@ pip install -e .
 pip install -e garaged
 ```
 
-## Examples
+Supervised Learning experiments:
 
-```
-# METRA on state-based Ant (2-D skills)
-python tests/main.py --run_group Debug --env ant --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 1 --normalizer_type preset --eval_plot_axis -50 50 -50 50 --trans_optimization_epochs 50 --n_epochs_per_log 100 --n_epochs_per_eval 1000 --n_epochs_per_save 10000 --sac_max_buffer_size 1000000 --algo metra --discrete 0 --dim_option 2
+For CIFAR experiment run python lop\incremental_cifar\run_cifar.py
+config file to modify at wish lop\incremental_cifar\tempCIFAR_cfg\cifar_cbp_compare.json
 
-# LSD on state-based Ant (2-D skills)
-python tests/main.py --run_group Debug --env ant --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 1 --normalizer_type preset --eval_plot_axis -50 50 -50 50 --trans_optimization_epochs 50 --n_epochs_per_log 100 --n_epochs_per_eval 1000 --n_epochs_per_save 10000 --sac_max_buffer_size 1000000 --algo metra --dual_reg 0 --spectral_normalization 1 --discrete 0 --dim_option 2
+For the PERMUTED MNIST experiment run python lop\permuted_mnist\cbp_compare.py
+config file to modify at wish lop\permuted_mnist\cfg\cbp_compare.json
 
-# DADS on state-based Ant (2-D skills)
-python tests/main.py --run_group Debug --env ant --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 1 --normalizer_type preset --eval_plot_axis -50 50 -50 50 --trans_optimization_epochs 50 --n_epochs_per_log 100 --n_epochs_per_eval 1000 --n_epochs_per_save 10000 --sac_max_buffer_size 1000000 --algo dads --inner 0 --unit_length 0 --dual_reg 0 --discrete 0 --dim_option 2
+RL experiments   
+RND python -m iod.RND.TrainPPOAgent --env_name Humanoid-v5 --Network Dense --action_type continuous --nonstat 1 --nonstat_type Hard --var_target mass --base_var 8 --delta_var 0.5 --omegaVar 0.3 --interval 200 --var_bodies torso
+n_epochs[ x ,  y  ] choose x for ant and choose y for humanoid       everything else [,] choose a value   
 
-# DIAYN on state-based Ant (2-D skills)
-python tests/main.py --run_group Debug --env ant --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 1 --normalizer_type preset --eval_plot_axis -50 50 -50 50 --trans_optimization_epochs 50 --n_epochs_per_log 100 --n_epochs_per_eval 1000 --n_epochs_per_save 10000 --sac_max_buffer_size 1000000 --algo metra --inner 0 --unit_length 0 --dual_reg 0 --discrete 0 --dim_option 2
+For the hierarchical_control and alternating modes, you need --cp_path, pass in the relative path of the child policy folder which are your pretraining models which are stored in exp\pretraining  
+This will only work if you trained your pretraining agent past the save intervals all set to 200 epochs where option_policyXXXX.pt will be generated and is required in the folder
 
-# METRA on state-based HalfCheetah (16 skills)
-python tests/main.py --run_group Debug --env half_cheetah --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 1 --normalizer_type preset --trans_optimization_epochs 50 --n_epochs_per_log 100 --n_epochs_per_eval 1000 --n_epochs_per_save 10000 --sac_max_buffer_size 1000000 --algo metra --discrete 1 --dim_option 16
+you can use these 2 as an example METRA\exp\pretraining\sd000_1776263709_ant_metra
+                                  METRA\exp\pretraining\sd000_1776265950_ant_metra_lifelong_ctx2
 
-# METRA on pixel-based Quadruped (4-D skills)
-python tests/main.py --run_group Debug --env dmc_quadruped --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 4 --normalizer_type off --video_skip_frames 2 --frame_stack 3 --sac_max_buffer_size 300000 --eval_plot_axis -15 15 -15 15 --algo metra --trans_optimization_epochs 200 --n_epochs_per_log 25 --n_epochs_per_eval 125 --n_epochs_per_save 1000 --n_epochs_per_pt_save 1000 --discrete 0 --dim_option 4 --encoder 1 --sample_cpu 0
+Need to run pretrain before the hierarchical or the alternating tests
 
-# METRA on pixel-based Humanoid (2-D skills)
-python tests/main.py --run_group Debug --env dmc_humanoid --max_path_length 200 --seed 0 --traj_batch_size 8 --n_parallel 4 --normalizer_type off --video_skip_frames 2 --frame_stack 3 --sac_max_buffer_size 300000 --eval_plot_axis -15 15 -15 15 --algo metra --trans_optimization_epochs 200 --n_epochs_per_log 25 --n_epochs_per_eval 125 --n_epochs_per_save 1000 --n_epochs_per_pt_save 1000 --discrete 0 --dim_option 2 --encoder 1 --sample_cpu 0
+1st is METRA
+2nd is Lifelong METRA
 
-# METRA on pixel-based Kitchen (24 skills)
-python tests/main.py --run_group Debug --env kitchen --max_path_length 50 --seed 0 --traj_batch_size 8 --n_parallel 4 --normalizer_type off --num_video_repeats 1 --frame_stack 3 --sac_max_buffer_size 100000 --algo metra --sac_lr_a -1 --trans_optimization_epochs 100 --n_epochs_per_log 25 --n_epochs_per_eval 250 --n_epochs_per_save 1000 --n_epochs_per_pt_save 1000 --discrete 1 --dim_option 24 --encoder 1 --sample_cpu 0
-```
+python tests/main.py --mode pretrain --pretrain_algo metra --dim_option 4 --n_epochs 1500 --cbp [0,1] --env ['ant', 'humanoid']
+python tests/main.py --mode pretrain --pretrain_algo metra --lifelong 1 -- dim_option 2 --context_dim 2 --n_epochs 1500 --cbp [0,1] --env ['ant', 'humanoid']
+
+python tests/main.py --mode hierarchical --pretrain_algo metra --dim_option 4 --n_epochs [1500,3000] --cbp [0,1] --env ['ant', 'humanoid'] --hierarchical_algo 'ppo' --cp_path METRA\exp\pretraining\sd000_1776263709_ant_metra
+python tests/main.py --mode hierarchical --pretrain_algo metra --lifelong 1 -- dim_option 2 --context_dim 2 --n_epochs [1500,3000] --cbp [0,1] --env ['ant', 'humanoid'] --hierarchical_algo 'ppo' --cp_path METRA\exp\pretraining\sd000_1776265950_ant_metra_lifelong_ctx2
+
+python tests/main.py --mode alternating --pretrain_algo metra --dim_option 4 --n_epochs [1500,3000] --cbp [0,1] --env ['ant', 'humanoid'] --hierarchical_algo 'ppo' --cp_path METRA\exp\pretraining\sd000_1776263709_ant_metra
+python tests/main.py --mode alternating --pretrain_algo metra --lifelong 1 -- dim_option 2 --context_dim 2 --n_epochs [1500,3000] --cbp [0,1]--env ['ant', 'humanoid'] --hierarchical_algo 'ppo' --cp_path METRA\exp\pretraining\sd000_1776265950_ant_metra_lifelong_ctx2
+
+RND experiment:
+python -m iod.RND.TrainPPOAgent --env_name Humanoid-v5 --Network Dense --action_type continuous --nonstat 1 --nonstat_type Hard --var_target friction
+
+Run example pre-saved hierarchical model
+python .\tests\ViSkills.py --mode hierarchical --algorithm lifelong_metra --cbp_mode NoCBP --pretraining_folder .\exp\pretraining\sd000_1776264234_ant_metra_lifelong_ctx2 --model_name option_policy200.pt
+
+LICENSES to Modify the MUJOCO Ant and Humanoid XML files are provided
+LICENCE to use GARAGE is provided
+
+
+

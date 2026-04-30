@@ -1,0 +1,21 @@
+{
+ "experiment_name": "cifar_cbp_compare_baseline_relu",
+ "results_dir": "./results",
+ "data_path": "./data",
+ "num_runs": 3,
+ "stepsize": 0.1,
+ "weight_decay": 0.0001,
+ "momentum": 0.9,
+ "use_cbp": false,
+ "replacement_rate": 0.0,
+ "utility_function": "weight",
+ "maturity_threshold": 0,
+ "activation": "relu",
+ "reset_head": false,
+ "reset_network": false,
+ "early_stopping": false,
+ "noise_std": 0.0,
+ "invariance_eval_batch_size": 256,
+ "invariance_firing_rate": 0.01,
+ "num_workers": 0
+}

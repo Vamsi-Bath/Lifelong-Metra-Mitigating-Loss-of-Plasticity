@@ -1,7 +1,6 @@
 import atexit
 import copy
 import os
-import pickle
 import signal
 import time
 
@@ -38,6 +37,7 @@ class OptionLocalRunner(LocalRunner):
         self._make_env = make_env
         self._n_workers = {}
         self._worker_class = worker_class
+
         if sampler_args is None:
             sampler_args = {}
         if sampler_cls is None:
@@ -48,6 +48,7 @@ class OptionLocalRunner(LocalRunner):
             worker_args = {}
 
         self._worker_args = worker_args
+
         if sampler_cls is None:
             self._sampler = None
         else:
@@ -72,12 +73,16 @@ class OptionLocalRunner(LocalRunner):
                     worker_args=cur_worker_args,
                 )
                 self._n_workers[sampler_key] = 1
+
             self.sampler_keys = list(self._sampler.keys())
+
         self._has_setup = True
 
-        self._setup_args = SetupArgs(sampler_cls=sampler_cls,
-                                     sampler_args=sampler_args,
-                                     seed=get_seed())
+        self._setup_args = SetupArgs(
+            sampler_cls=sampler_cls,
+            sampler_args=sampler_args,
+            seed=get_seed(),
+        )
 
         self._hanging_env_update = {}
         self._hanging_worker_update = {}
@@ -86,100 +91,104 @@ class OptionLocalRunner(LocalRunner):
             self._hanging_worker_update[key] = None
 
     def save(self, epoch, new_save=False, pt_save=False, pkl_update=False):
-        """Save snapshot of current batch.
-
-        Args:
-            epoch (int): Epoch.
-
-        Raises:
-            NotSetupError: if save() is called before the runner is set up.
-
-        """
+        """Save snapshot of current batch."""
         if not self._has_setup:
             raise NotSetupError('Use setup() to setup runner before saving.')
 
         logger.log('Saving snapshot...')
 
         params = dict()
-        # Save arguments
         params['setup_args'] = self._setup_args
         params['train_args'] = self._train_args
         params['stats'] = self._stats
 
-        # Save states
-        replay_buffer = self._algo.replay_buffer
-        self._algo.replay_buffer = None  # Don't save replay buffer
-        # params['env'] = self._env
         params['algo'] = self._algo
         params['n_workers'] = self._n_workers
         params['worker_class'] = self._worker_class
         params['worker_args'] = self._worker_args
+
+        def build_option_payload():
+            payload = {
+                'discrete': self._algo.discrete,
+                'dim_option': self._algo.dim_option,
+                'policy': self._algo.option_policy,
+                'dim_context': getattr(self._algo, 'dim_context', 0),
+                'use_context_in_phi': getattr(self._algo, 'use_context_in_phi', False),
+                'deterministic_rollout_context': getattr(
+                    self._algo, 'deterministic_rollout_context', True
+                ),
+            }
+
+            # Include context models if they exist
+            if getattr(self._algo, 'dim_context', 0) > 0:
+                payload.update({
+                    'context_encoder': getattr(self._algo, 'context_encoder', None),
+                    'context_prior_net': getattr(self._algo, 'context_prior_net', None),
+                    'context_decoder': getattr(self._algo, 'context_decoder', None),
+                })
+
+            return payload
 
         if new_save and epoch != 0:
             prev_snapshot_mode = self._snapshotter._snapshot_mode
             self._snapshotter._snapshot_mode = 'all'
             self._snapshotter.save_itr_params(epoch, params)
             self._snapshotter._snapshot_mode = prev_snapshot_mode
-            file_name = os.path.join(self._snapshotter._snapshot_dir, f'option_policy{epoch}.pt')
-            torch.save({
-                'discrete': self._algo.discrete,
-                'dim_option': self._algo.dim_option,
-                'policy': self._algo.option_policy,
-            }, file_name)
-            file_name = os.path.join(self._snapshotter._snapshot_dir, f'traj_encoder{epoch}.pt')
+
+            # Save option policy (for hierarchical control)
+            file_name = os.path.join(
+                self._snapshotter._snapshot_dir, f'option_policy{epoch}.pt')
+            torch.save(build_option_payload(), file_name)
+
+            # Save trajectory encoder
+            file_name = os.path.join(
+                self._snapshotter._snapshot_dir, f'traj_encoder{epoch}.pt')
             torch.save({
                 'discrete': self._algo.discrete,
                 'dim_option': self._algo.dim_option,
                 'traj_encoder': self._algo.traj_encoder,
             }, file_name)
 
+            # Save context models separately as well
             if hasattr(self._algo, 'context_encoder') and self._algo.context_encoder is not None:
-                file_name = os.path.join(self._snapshotter._snapshot_dir, f'context_encoder{epoch}.pt')
+                file_name = os.path.join(
+                    self._snapshotter._snapshot_dir, f'context_encoder{epoch}.pt')
                 torch.save({
                     'dim_context': getattr(self._algo, 'dim_context', None),
                     'context_encoder': self._algo.context_encoder,
                 }, file_name)
 
             if hasattr(self._algo, 'context_prior_net') and self._algo.context_prior_net is not None:
-                file_name = os.path.join(self._snapshotter._snapshot_dir, f'context_prior{epoch}.pt')
+                file_name = os.path.join(
+                    self._snapshotter._snapshot_dir, f'context_prior{epoch}.pt')
                 torch.save({
                     'dim_context': getattr(self._algo, 'dim_context', None),
                     'context_prior_net': self._algo.context_prior_net,
+                }, file_name)
+
+            if hasattr(self._algo, 'context_decoder') and self._algo.context_decoder is not None:
+                file_name = os.path.join(
+                    self._snapshotter._snapshot_dir, f'context_decoder{epoch}.pt')
+                torch.save({
+                    'dim_context': getattr(self._algo, 'dim_context', None),
+                    'context_decoder': self._algo.context_decoder,
                 }, file_name)
 
         if pt_save and epoch != 0:
-            file_name = os.path.join(self._snapshotter._snapshot_dir, f'option_policy{epoch}.pt')
-            torch.save({
-                'discrete': self._algo.discrete,
-                'dim_option': self._algo.dim_option,
-                'policy': self._algo.option_policy,
-            }, file_name)
+            file_name = os.path.join(
+                self._snapshotter._snapshot_dir, f'option_policy{epoch}.pt')
+            torch.save(build_option_payload(), file_name)
 
-            file_name = os.path.join(self._snapshotter._snapshot_dir, f'traj_encoder{epoch}.pt')
+            file_name = os.path.join(
+                self._snapshotter._snapshot_dir, f'traj_encoder{epoch}.pt')
             torch.save({
                 'discrete': self._algo.discrete,
                 'dim_option': self._algo.dim_option,
                 'traj_encoder': self._algo.traj_encoder,
             }, file_name)
 
-            if hasattr(self._algo, 'context_encoder') and self._algo.context_encoder is not None:
-                file_name = os.path.join(self._snapshotter._snapshot_dir, f'context_encoder{epoch}.pt')
-                torch.save({
-                    'dim_context': getattr(self._algo, 'dim_context', None),
-                    'context_encoder': self._algo.context_encoder,
-                }, file_name)
-
-            if hasattr(self._algo, 'context_prior_net') and self._algo.context_prior_net is not None:
-                file_name = os.path.join(self._snapshotter._snapshot_dir, f'context_prior{epoch}.pt')
-                torch.save({
-                    'dim_context': getattr(self._algo, 'dim_context', None),
-                    'context_prior_net': self._algo.context_prior_net,
-                }, file_name)
-
         if pkl_update:
             self._snapshotter.save_itr_params(epoch, params)
-
-        self._algo.replay_buffer = replay_buffer
 
         logger.log('Saved')
 
@@ -200,23 +209,11 @@ class OptionLocalRunner(LocalRunner):
         return self._algo.train(self)
 
     def restore(self, from_dir, make_env, from_epoch='last', post_restore_handler=None):
-        """Restore experiment from snapshot.
-
-        Args:
-            from_dir (str): Directory of the pickle file
-                to resume experiment from.
-            from_epoch (str or int): The epoch to restore from.
-                Can be 'first', 'last' or a number.
-                Not applicable when snapshot_mode='last'.
-
-        Returns:
-            TrainArgs: Arguments for train().
-
-        """
+        """Restore experiment from snapshot."""
         saved = self._snapshotter.load(
-        load_dir=from_dir,
-        itr=from_epoch,
-    )
+            load_dir=from_dir,
+            itr=from_epoch,
+        )
 
         self._setup_args = saved['setup_args']
         self._train_args = saved['train_args']
@@ -227,13 +224,14 @@ class OptionLocalRunner(LocalRunner):
         if post_restore_handler is not None:
             post_restore_handler(saved)
 
-        self.setup(env=make_env(),  # Not use saved['env']
-                   algo=saved['algo'],
-                   make_env=make_env,
-                   sampler_cls=self._setup_args.sampler_cls,
-                   sampler_args=self._setup_args.sampler_args,
-                   n_workers=saved['n_workers']['option_policy'],
-                   )
+        self.setup(
+            env=make_env(),
+            algo=saved['algo'],
+            make_env=make_env,
+            sampler_cls=self._setup_args.sampler_cls,
+            sampler_args=self._setup_args.sampler_args,
+            n_workers=saved['n_workers']['option_policy'],
+        )
 
         n_epochs = self._train_args.n_epochs
         last_epoch = self._stats.total_epoch
@@ -263,7 +261,7 @@ class OptionLocalRunner(LocalRunner):
         return copy.copy(self._train_args)
 
     def _start_worker(self):
-        """Start Plotter and Sampler workers."""  
+        """Start Plotter and Sampler workers."""
         for sampler in self._sampler.values():
             if isinstance(sampler, BaseSampler):
                 sampler.start_worker()
@@ -317,15 +315,18 @@ class OptionLocalRunner(LocalRunner):
         if issubclass(sampler_cls, BaseSampler):
             raise NotImplementedError('BaseSampler does not support obtain_exact_trajectories()')
         else:
-            return sampler_cls.from_worker_factory(WorkerFactory(
-                seed=seed,
-                max_path_length=max_path_length,
-                n_workers=n_workers,
-                worker_class=worker_class,
-                worker_args=worker_args),
+            return sampler_cls.from_worker_factory(
+                WorkerFactory(
+                    seed=seed,
+                    max_path_length=max_path_length,
+                    n_workers=n_workers,
+                    worker_class=worker_class,
+                    worker_args=worker_args,
+                ),
                 agents=agents,
                 make_env=self._make_env,
-                **sampler_args)
+                **sampler_args
+            )
 
     def make_local_sampler(self, policy, worker_args):
         max_path_length = self._algo.max_path_length
@@ -333,14 +334,17 @@ class OptionLocalRunner(LocalRunner):
 
         agents = copy.deepcopy(policy)
 
-        return OptionLocalSampler.from_worker_factory(WorkerFactory(
-            seed=seed,
-            max_path_length=max_path_length,
-            n_workers=1,
-            worker_class=OptionWorker,
-            worker_args=worker_args),
+        return OptionLocalSampler.from_worker_factory(
+            WorkerFactory(
+                seed=seed,
+                max_path_length=max_path_length,
+                n_workers=1,
+                worker_class=OptionWorker,
+                worker_args=worker_args,
+            ),
             agents=agents,
-            make_env=self._make_env)
+            make_env=self._make_env
+        )
 
     def set_hanging_env_update(self, env_update, sampler_keys):
         for k, v in env_update.items():
@@ -367,13 +371,15 @@ class OptionLocalRunner(LocalRunner):
         if batch_size is None and self._train_args.batch_size is None:
             raise ValueError('Runner was not initialized with `batch_size`. '
                              'Either provide `batch_size` to runner.train, '
-                             ' or pass `batch_size` to runner.obtain_samples.')
+                             'or pass `batch_size` to runner.obtain_samples.')
+
         sampler = self._sampler[sampler_key]
         if isinstance(sampler, BaseSampler):
             raise NotImplementedError('BaseSampler does not support obtain_exact_trajectories()')
         else:
             if agent_update is None:
-                agent_update = self._algo.policy[sampler_key].get_param_values()
+                policy_key = sampler_key[6:] if sampler_key.startswith('local_') else sampler_key
+                agent_update = self._algo.policy[policy_key].get_param_values()
 
             if self._hanging_env_update[sampler_key] is not None and env_update is not None:
                 if isinstance(self._hanging_env_update[sampler_key], dict) and isinstance(env_update, dict):
@@ -381,6 +387,7 @@ class OptionLocalRunner(LocalRunner):
                     env_update = None
                 else:
                     raise NotImplementedError()
+
             if self._hanging_worker_update[sampler_key] is not None and worker_update is not None:
                 if isinstance(self._hanging_worker_update[sampler_key], dict) and isinstance(worker_update, dict):
                     self._hanging_worker_update[sampler_key].update(worker_update)
@@ -391,6 +398,7 @@ class OptionLocalRunner(LocalRunner):
             if self._hanging_env_update[sampler_key] is not None:
                 env_update = self._hanging_env_update[sampler_key]
                 self._hanging_env_update[sampler_key] = None
+
             if self._hanging_worker_update[sampler_key] is not None:
                 worker_update = self._hanging_worker_update[sampler_key]
                 self._hanging_worker_update[sampler_key] = None
@@ -412,9 +420,9 @@ class OptionLocalRunner(LocalRunner):
                 _cur_extras=None,
                 _cur_extra_idx=None,
             ))
+
             if extras is not None:
                 assert batch_size == len(extras)
-
                 worker_extras_list = np.array_split(extras, self._n_workers[sampler_key])
                 worker_update = [
                     dict(
@@ -422,8 +430,7 @@ class OptionLocalRunner(LocalRunner):
                         _cur_extras=worker_extras,
                         _cur_extra_idx=-1,
                     )
-                    for worker_extras
-                    in worker_extras_list
+                    for worker_extras in worker_extras_list
                 ]
 
             if update_normalized_env_ex is not None:
@@ -442,54 +449,37 @@ class OptionLocalRunner(LocalRunner):
             paths = paths.to_trajectory_list()
 
         if update_stats:
-            # XXX: Assume that env_infos always contains 2D coordinates.
+            # Assume env_infos contains 2D coordinates.
             self._stats.total_env_steps += sum([
-                (len(p['env_infos']['coordinates'].reshape(-1, 2))
-                 if p['env_infos']['coordinates'].dtype != object
-                 else sum(len(l) for l in p['env_infos']['coordinates']))
+                (
+                    len(p['env_infos']['coordinates'].reshape(-1, 2))
+                    if p['env_infos']['coordinates'].dtype != object
+                    else sum(len(l) for l in p['env_infos']['coordinates'])
+                )
                 for p in paths
             ])
 
         return paths, infos
 
-    def step_epochs(self, log_period=1, full_tb_epochs=None, tb_period=None, pt_save_period=None, pkl_update_period=None, new_save_period=None):
-        """Step through each epoch.
-
-        This function returns a magic generator. When iterated through, this
-        generator automatically performs services such as snapshotting and log
-        management. It is used inside train() in each algorithm.
-
-        The generator initializes two variables: `self.step_itr` and
-        `self.step_path`. To use the generator, these two have to be
-        updated manually in each epoch, as the example shows below.
-
-        Yields:
-            int: The next training epoch.
-
-        Examples:
-            for epoch in runner.step_epochs():
-                runner.step_path = runner.obtain_samples(...)
-                self.train_once(...)
-                runner.step_itr += 1
-
-        """
+    def step_epochs(self, log_period=1, full_tb_epochs=None, tb_period=None,
+                    pt_save_period=None, pkl_update_period=None, new_save_period=None):
+        """Step through each epoch."""
         self._start_worker()
         self._start_time = time.time()
         self.step_itr = self._stats.total_itr
         self.step_path = None
 
-        # Used by integration tests to ensure examples can run one epoch.
         n_epochs = int(
             os.environ.get('GARAGE_EXAMPLE_TEST_N_EPOCHS',
-                           self._train_args.n_epochs))
+                           self._train_args.n_epochs)
+        )
 
         logger.log('Obtaining samples...')
 
         for epoch in range(self._train_args.start_epoch, n_epochs):
             self._itr_start_time = time.time()
             with logger.prefix('epoch #%d | ' % epoch):
-                save_path = (self.step_path
-                             if self._train_args.store_paths else None)
+                save_path = (self.step_path if self._train_args.store_paths else None)
 
                 self._stats.last_path = save_path
                 self._stats.total_epoch = epoch
@@ -515,7 +505,6 @@ class OptionLocalRunner(LocalRunner):
                                 logger.dump_output_type((TextOutput, CsvOutput, StdOutput), self.step_itr)
 
                     tabular.clear()
-
 
     def log_diagnostics(self, pause_for_plot=False):
         total_time = (time.time() - self._start_time)

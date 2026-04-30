@@ -1,0 +1,17 @@
+{
+    "num_runs": 2,
+    "data_dir": "results/cbp_compare/",
+    "agent": ["bp", "cbp", "cbp", "cbp"],
+    "activation": ["relu", "relu", "tanh", "crelu"],
+    "step_size": [0.0001],
+    "opt": ["sgd"],
+    "num_features": [2000],
+    "num_hidden_layers": [1],
+    "change_after": [60000],
+    "replacement_rate": [0.0001],
+    "decay_rate": [0.99],
+    "mt": [100],
+    "util_type": ["adaptable_contribution"],
+    "to_log": [1],
+    "use_gpu": [0]
+}

@@ -1,0 +1,1 @@
+{"timestep": 300000.0, "return/CSD": -32.85185371440189, "return/METRA": -50.12726622951259, "return/CIC": -72.87032229814754, "return/RND": -46.15633984701114, "_timestamp": 1775080495.6902301, "_runtime": 6.15355920791626, "_step": 99, "_wandb": {"runtime": 5}}

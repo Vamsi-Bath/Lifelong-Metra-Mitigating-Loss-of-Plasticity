@@ -1,0 +1,42 @@
+{
+    "os": "Windows-10-10.0.26200-SP0",
+    "python": "3.8.20",
+    "heartbeatAt": "2026-03-30T15:01:01.380027",
+    "startedAt": "2026-03-30T15:01:00.009096",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\vamsi\\VamsiResearchProject\\METRA\\tests\\expwandb.py",
+    "codePath": "METRA\\tests\\expwandb.py",
+    "git": {
+        "remote": "https://github.com/Vamsi-Bath/LifeLong-Metra.git",
+        "commit": "81aaa4ed4397d8355b3392a1b1b801799cf99439"
+    },
+    "email": "vamsikrishnavishnumolakala@gmail.com",
+    "root": "C:/Users/vamsi/VamsiResearchProject",
+    "host": "VAMSI",
+    "username": "vamsi",
+    "executable": "c:\\Users\\vamsi\\anaconda3\\envs\\metra\\python.exe",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 2419.0,
+        "min": 0.0,
+        "max": 2419.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2419.0,
+            "min": 0.0,
+            "max": 2419.0
+        }
+    ],
+    "disk": {
+        "total": 475.4807777404785,
+        "used": 213.23452377319336
+    },
+    "memory": {
+        "total": 15.701713562011719
+    }
+}
