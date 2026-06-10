@@ -8,15 +8,6 @@ GitHub link https://github.com/Vamsi-Bath/LifeLong-Metra for mostly full access 
 
 The CIFAR and MNIST dataset isn't provided but the code when run should automatically download the necessary files to run our experiments if not present
 
-Folder Assembly
-
-There are 2 Empty folders provided in the submission METRA and VamsiResearchProject
-Move all the contents in METRA1 into METRA  (Not the folder itself)   (or rename METRA1 to METRA)
-Move all contnets inside VamsiResearchProject 1 and 2 into VamsiResearchProject (Not the folders themseveles)
-Move the METRA folder into VamsiResearchProject
-
-For assistance with assembly please look at the repo structure
-
 Code Accreditation
 
 Metra has been used as the backbone for my lifelong Metra implementation and I used the original Metra Implementation but the code has been modified to suit my experiments and with gym deprecated  https://github.com/seohongpark/METRA
