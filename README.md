@@ -1,11 +1,4 @@
 
-
-Important.
-
-Once you run pretraining and the models are saved you can use these for alternating and hierarchical control. More details provided below
-
-GitHub link https://github.com/Vamsi-Bath/LifeLong-Metra for mostly full access to code still file size limitations on GitHub but should be able to run.
-
 The CIFAR and MNIST dataset isn't provided but the code when run should automatically download the necessary files to run our experiments if not present
 
 Code Accreditation
@@ -22,7 +15,6 @@ https://princeton-rl.github.io/contrastive-successor-features/
 https://github.com/mturan33/isaac-g1-ulc  only the networks using tanh and CReLU have been borrowed here the rest of this PPO implementation is taken from my RND implementation
 
 On top of my RND implementation, we also used the RLeXplore RND baseline code used in the METRA paper https://github.com/RLE-Foundation/RLeXplore
-
 
 ## Installation
 
